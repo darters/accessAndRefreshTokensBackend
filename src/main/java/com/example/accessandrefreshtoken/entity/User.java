@@ -34,5 +34,11 @@ public class User implements UserDetails {
                 .map(role -> new SimpleGrantedAuthority(role.getAuthority()))
                 .collect(Collectors.toSet());
     }
+
+    public User(String username, String firstname, Set<Role> roles) {
+        this.username = username;
+        this.firstname = firstname;
+        this.roles = roles;
+    }
 }
 

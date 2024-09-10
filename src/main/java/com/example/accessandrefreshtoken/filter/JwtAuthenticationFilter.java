@@ -32,22 +32,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
         if (authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
-            Claims claims = jwtService.getAccessTokenClaims(token);
+            try {
+                if (jwtService.validateAccessToken(token)) {
+                    Claims claims = jwtService.getAccessTokenClaims(token);
+                    String username = claims.getSubject();
+                    String firstname = (String) claims.get("firstname");
+                    List<String> rolesAsString = (List<String>) claims.get("role");
+                    Set<Role> roles = rolesAsString.stream()
+                            .map(roleStr -> Role.valueOf(roleStr.toUpperCase()))
+                            .collect(Collectors.toSet());
 
-            String username = claims.getSubject();
-            String firstname = (String) claims.get("firstname");
-            List<String> rolesAsString = (List<String>) claims.get("role");
-            Set<Role> roles = rolesAsString.stream()
-                    .map(roleStr -> Role.valueOf(roleStr.toUpperCase()))
-                    .collect(Collectors.toSet());
-
-            User userDetails = new User();
-            userDetails.setUsername(username);
-            userDetails.setFirstname(firstname);
-            userDetails.setRoles(roles);
-
-            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                    User userDetails = new User(username, firstname, roles);
+                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                }
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
         }
         filterChain.doFilter(request, response);
     }
